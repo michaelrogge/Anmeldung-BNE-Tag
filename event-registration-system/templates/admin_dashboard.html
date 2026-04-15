@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Admin-Dashboard{% endblock %}
+
+{% block content %}
+<div class="content">
+    <h1>📊 Admin-Dashboard</h1>
+    
+    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+        <a href="/admin/create-event" class="btn" style="background-color: #27ae60;">
+            ➕ Neue Veranstaltung
+        </a>
+    </div>
+    
+    {% if events %}
+        <h2>Veranstaltungen</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Datum</th>
+                    <th>Ort</th>
+                    <th>Anmeldungen</th>
+                    <th>Status</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                    {% set event_registrations = registrations | selectattr('event_id', 'equalto', event.id) | list %}
+                    <tr>
+                        <td><strong>{{ event.name }}</strong></td>
+                        <td>{{ event.date.strftime('%d.%m.%Y, %H:%M') }}</td>
+                        <td>{{ event.location or '-' }}</td>
+                        <td>{{ event_registrations | length }} / {{ event.max_participants }}</td>
+                        <td>
+                            {% if event_registrations | length >= event.max_participants %}
+                                <span class="status cancelled">Voll</span>
+                            {% elif event.date < now() %}
+                                <span class="status">Vorbei</span>
+                            {% else %}
+                                <span class="status registered">Aktiv</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/admin/event/{{ event.id }}" class="btn" 
+                               style="background-color: #3498db; padding: 0.5rem 1rem; text-decoration: none; color: white; display: inline-block; border-radius: 4px;">
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">Keine Veranstaltungen vorhanden.</div>
+    {% endif %}
+</div>
+{% endblock %}

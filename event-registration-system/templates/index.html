@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content">
+    <h1>🎉 Willkommen zur Veranstaltungsanmeldung</h1>
+    <p>Wählen Sie eine Veranstaltung aus, um sich anzumelden:</p>
+    
+    <!-- INFORMATIONS-BOX (Sie können diesen Text bearbeiten) -->
+    <div style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 1.5rem; border-radius: 4px; margin-bottom: 2rem;">
+        <h2 style="margin-top: 0; color: #1976d2;">📌 Über diese Veranstaltung</h2>
+        <p>Der seminarübergreifende <strong>BNE-Tag</strong> soll dazu dienen, unterschiedliche Perspektiven zusammen zu bringen, um Bildung für Nachhaltige Entwicklung in der Lehrkräfteausbildung zu fördern. 
+        Erleben Sie praxisnahe Workshops, knüpfen Sie Kontakte und lernen Sie von Experten der Branche.</p>
+        <ul>
+            <li>✅ Kostenlose Teilnahme</li>
+            <li>✅ Teilnahmezertifikat</li>
+            <li>✅ Umfangreiches Verpflegungsangebot</li>
+        </ul>
+    </div>
+    
+    {% if events %}
+        <div class="event-grid">
+            {% for event in events %}
+                <div class="event-card">
+                    <div class="event-card-header">
+                        <h3>{{ event.name }}</h3>
+                    </div>
+                    <div class="event-card-body">
+                        <p><strong>📅 Datum:</strong> {{ event.date.strftime('%d.%m.%Y, %H:%M') }}</p>
+                        <p><strong>📍 Ort:</strong> {{ event.location or 'TBD' }}</p>
+                        {% if event.description %}
+                            <p><strong>📝 Beschreibung:</strong> {{ event.description[:100] }}...</p>
+                        {% endif %}
+                        <a href="/event/{{ event.id }}">Zur Anmeldung →</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            Aktuell keine Veranstaltungen verfügbar. Bitte versuchen Sie es später erneut.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

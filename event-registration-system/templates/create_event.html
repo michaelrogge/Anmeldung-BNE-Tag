@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Neue Veranstaltung erstellen{% endblock %}
+
+{% block content %}
+<div class="content" style="max-width: 600px; margin: 0 auto;">
+    <h1>➕ Neue Veranstaltung erstellen</h1>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Veranstaltungsname *</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Beschreibung</label>
+            <textarea id="description" name="description"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="date">Datum und Uhrzeit *</label>
+            <input type="datetime-local" id="date" name="date" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Ort/Adresse</label>
+            <input type="text" id="location" name="location">
+        </div>
+        
+        <div class="form-group">
+            <label for="max_participants">Max. Teilnehmerzahl</label>
+            <input type="number" id="max_participants" name="max_participants" value="100" min="1">
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit">✅ Veranstaltung erstellen</button>
+            <a href="/admin" class="btn btn-secondary">← Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

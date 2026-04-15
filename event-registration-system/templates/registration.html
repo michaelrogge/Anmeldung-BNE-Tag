@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.name }} - Anmeldung{% endblock %}
+
+{% block content %}
+<div class="content">
+    <h1>🎯 Anmeldung: {{ event.name }}</h1>
+    
+    <div class="alert alert-info">
+        <strong>📅 {{ event.date.strftime('%d.%m.%Y, %H:%M') }}</strong> | 
+        <strong>📍 {{ event.location }}</strong>
+    </div>
+    
+    <form id="registrationForm">
+        <h2>Ihre Daten</h2>
+        
+        <div class="form-group">
+            <label for="first_name">Vorname *</label>
+            <input type="text" id="first_name" name="first_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="last_name">Nachname *</label>
+            <input type="text" id="last_name" name="last_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Telefon</label>
+            <input type="tel" id="phone" name="phone">
+        </div>
+        
+        <div class="form-group">
+            <label for="organization">Organisation/Einrichtung</label>
+            <input type="text" id="organization" name="organization">
+        </div>
+        
+        <div class="form-group">
+            <label for="dietary_restrictions">Besondere Wünsche/Diätische Einschränkungen</label>
+            <input type="text" id="dietary_restrictions" name="dietary_restrictions" 
+                   placeholder="z.B. vegetarisch, glutenfrei, keine Nüsse">
+        </div>
+        
+        <div class="form-group">
+            <label for="additional_info">Weitere Informationen/Fragen</label>
+            <textarea id="additional_info" name="additional_info"></textarea>
+        </div>
+        
+        <h2 style="margin-top: 2rem;">Wählen Sie Ihre Workshops *</h2>
+        
+        <div id="workshopsContainer">
+            {% for workshop in workshops %}
+                <div class="workshop-item">
+                    <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                        <input type="checkbox" id="workshop_{{ workshop.id }}" 
+                               name="workshops" value="{{ workshop.id }}" 
+                               class="workshop-checkbox">
+                        <label for="workshop_{{ workshop.id }}" style="margin: 0;">
+                            <strong>{{ workshop.name }}</strong>
+                        </label>
+                    </div>
+                    
+                    {% if workshop.description %}
+                        <p style="margin: 0.5rem 0; font-size: 0.9rem; color: #666;">
+                            {{ workshop.description }}
+                        </p>
+                    {% endif %}
+                    
+                    {% if workshop.start_time %}
+                        <p style="margin: 0.5rem 0; font-size: 0.9rem;">
+                            📅 {{ workshop.start_time.strftime('%d.%m.%Y, %H:%M') }} - {{ workshop.end_time.strftime('%H:%M') }} Uhr
+                        </p>
+                    {% endif %}
+                    
+                    {% if workshop.location %}
+                        <p style="margin: 0.5rem 0; font-size: 0.9rem;">
+                            📍 {{ workshop.location }}
+                        </p>
+                    {% endif %}
+                    
+                    <div class="capacity-bar">
+                        <div class="capacity-bar-fill {% if workshop.is_full() %}full{% endif %}" 
+                             style="width: {{ (workshop.current_capacity / workshop.max_capacity * 100) }}%">
+                            {{ workshop.current_capacity }}/{{ workshop.max_capacity }}
+                        </div>
+                    </div>
+                    
+                    {% if workshop.is_full() %}
+                        <p style="color: red; margin: 0.5rem 0; font-weight: bold;">
+                            ⚠️ Dieser Workshop ist voll
+                        </p>
+                    {% else %}
+                        <p style="color: green; margin: 0.5rem 0; font-size: 0.9rem;">
+                            {{ workshop.get_available_spots() }} Plätze verfügbar
+                        </p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 2rem; margin-bottom: 2rem;">
+            <button type="submit" id="submitBtn">✅ Anmeldung abschließen</button>
+            <a href="/" style="margin-left: 1rem;">← Zurück zur Startseite</a>
+        </div>
+    </form>
+    
+    <div id="messageContainer"></div>
+</div>
+
+<script>
+document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const messageContainer = document.getElementById('messageContainer');
+    messageContainer.innerHTML = '';
+    
+    // Validierung: mindestens ein Workshop
+    const selectedWorkshops = Array.from(document.querySelectorAll('input[name="workshops"]:checked'))
+        .map(cb => parseInt(cb.value));
+    
+    if (selectedWorkshops.length === 0) {
+        messageContainer.innerHTML = '<div class="error-message">Bitte wählen Sie mindestens einen Workshop aus.</div>';
+        return;
+    }
+    
+    // Button disablen
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading" style="display: inline-block;"></span> Wird verarbeitet...';
+    
+    const formData = {
+        event_id: {{ event.id }},
+        first_name: document.getElementById('first_name').value,
+        last_name: document.getElementById('last_name').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        organization: document.getElementById('organization').value,
+        dietary_restrictions: document.getElementById('dietary_restrictions').value,
+        additional_info: document.getElementById('additional_info').value,
+        workshops: selectedWorkshops
+    };
+    
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            messageContainer.innerHTML = `
+                <div class="success-message">
+                    <h3>🎉 Anmeldung erfolgreich!</h3>
+                    <p>${data.message}</p>
+                    <p style="margin-top: 1rem;">
+                        <a href="/" style="color: #155724; text-decoration: underline;">Zur Startseite</a>
+                    </p>
+                </div>
+            `;
+            document.getElementById('registrationForm').reset();
+        } else {
+            const errorList = data.errors.map(err => `<li>${err}</li>`).join('');
+            messageContainer.innerHTML = `
+                <div class="error-message">
+                    <h3>❌ Fehler bei der Anmeldung</h3>
+                    <ul>${errorList}</ul>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        messageContainer.innerHTML = `
+            <div class="error-message">
+                <h3>❌ Ein Fehler ist aufgetreten</h3>
+                <p>Bitte versuchen Sie es später erneut.</p>
+            </div>
+        `;
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '✅ Anmeldung abschließen';
+    }
+});
+
+// Live-Updates der Workshop-Kapazität (optional)
+const workshopCheckboxes = document.querySelectorAll('.workshop-checkbox');
+workshopCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', async () => {
+        // Könnte hier Workshop-Status aktualisieren
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="content">
+    <h1>{{ event.name }} - Admin-Details</h1>
+    
+    <div style="background-color: #ecf0f1; padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
+        <h3>📊 Zusammenfassung</h3>
+        <ul style="list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <li><strong>Gesamtanmeldungen:</strong> {{ summary.total_participants }}</li>
+            <li><strong>Bestätigt:</strong> <span style="color: green;">{{ summary.confirmed }}</span></li>
+            <li><strong>Registriert:</strong> <span style="color: blue;">{{ summary.registered }}</span></li>
+            <li><strong>Storniert:</strong> <span style="color: red;">{{ summary.cancelled }}</span></li>
+        </ul>
+    </div>
+    
+    <div style="margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="/admin/create-workshop/{{ event.id }}" class="btn" 
+           style="background-color: #27ae60;">➕ Workshop hinzufügen</a>
+        
+        <button onclick="sendConfirmations({{ event.id }})" class="btn" 
+                style="background-color: #f39c12;">📧 Bestätigungen versenden</button>
+        
+        <a href="/admin/export-csv/{{ event.id }}" class="btn" 
+           style="background-color: #16a085;">📥 CSV exportieren</a>
+        
+        <a href="/admin/export-excel/{{ event.id }}" class="btn" 
+           style="background-color: #27ae60;">📊 Excel exportieren</a>
+        
+        <a href="/admin" class="btn btn-secondary">← Zurück</a>
+    </div>
+    
+    <h2>Workshops</h2>
+    {% if workshops %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Workshop</th>
+                    <th>Uhrzeit</th>
+                    <th>Ort</th>
+                    <th>Kapazität</th>
+                    <th>Auslastung</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for workshop in workshops %}
+                    <tr>
+                        <td><strong>{{ workshop.name }}</strong></td>
+                        <td>
+                            {% if workshop.start_time %}
+                                {{ workshop.start_time.strftime('%H:%M') }} - {{ workshop.end_time.strftime('%H:%M') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ workshop.location or '-' }}</td>
+                        <td>{{ workshop.max_capacity }}</td>
+                        <td>
+                            <div class="capacity-bar">
+                                <div class="capacity-bar-fill {% if workshop.is_full() %}full{% endif %}" 
+                                     style="width: {{ (workshop.current_capacity / workshop.max_capacity * 100) }}%">
+                                    {{ workshop.current_capacity }}/{{ workshop.max_capacity }}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">Keine Workshops erstellt.</div>
+    {% endif %}
+    
+    <h2 style="margin-top: 2rem;">Teilnehmer</h2>
+    {% if registrations %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Telefon</th>
+                    <th>Organisation</th>
+                    <th>Workshops</th>
+                    <th>Anmeldedatum</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registration in registrations %}
+                    <tr>
+                        <td>{{ registration.participant.first_name }} {{ registration.participant.last_name }}</td>
+                        <td>{{ registration.participant.email }}</td>
+                        <td>{{ registration.participant.phone or '-' }}</td>
+                        <td>{{ registration.participant.organization or '-' }}</td>
+                        <td>
+                            {% for wr in registration.workshop_selections %}
+                                <div>{{ wr.workshop.name }}</div>
+                            {% endfor %}
+                        </td>
+                        <td>{{ registration.registration_date.strftime('%d.%m.%Y, %H:%M') }}</td>
+                        <td><span class="status {{ registration.status }}">{{ registration.status }}</span></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">Keine Anmeldungen vorhanden.</div>
+    {% endif %}
+</div>
+
+<script>
+async function sendConfirmations(eventId) {
+    if (!confirm('Möchten Sie Bestätigungsmails an alle Teilnehmer versenden?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/send-confirmations/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Fehler beim Versand');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Ein Fehler ist aufgetreten');
+    }
+}
+</script>
+{% endblock %}
