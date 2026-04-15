@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 Veranstaltungsanmeldesystem</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f4; color: #333; }
+        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 20px; }
+        .content { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #2c3e50; margin-bottom: 1rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        input, select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #3498db; box-shadow: 0 0 5px rgba(52,152,219,0.3); }
+        button { background: #3498db; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .success-message { background: #d4edda; color: #155724; padding: 1rem; border-radius: 4px; margin: 1rem 0; }
+        .error-message { background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 4px; margin: 1rem 0; }
+        .event-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .event-card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .event-card-header { background: #3498db; color: white; padding: 1rem; }
+        .event-card-body { padding: 1rem; }
+        .event-card a { display: inline-block; margin-top: 1rem; color: white; background: #3498db; padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; }
+        .event-card a:hover { background: #2980b9; }
+        .hidden { display: none; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th { background: #2c3e50; color: white; padding: 0.75rem; text-align: left; }
+        td { padding: 0.75rem; border-bottom: 1px solid #ddd; }
+        tr:nth-child(even) { background: #f4f4f4; }
+        .capacity-bar { background: #ecf0f1; border-radius: 10px; height: 25px; overflow: hidden; margin: 0.5rem 0; }
+        .capacity-bar-fill { height: 100%; background: #3498db; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold; }
+        .capacity-bar-fill.full { background: #e74c3c; }
+        .admin-login { max-width: 400px; margin: 0 auto; }
+        .admin-login input { margin-bottom: 1rem; }
+        footer { background: #2c3e50; color: white; text-align: center; padding: 1rem; margin-top: 2rem; }
+        .workshop-item { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 4px; background: #f9f9f9; }
+        .workshop-item input[type="checkbox"] { width: auto; margin-right: 0.5rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📋 Veranstaltungsanmeldesystem</h1>
+    </header>
+
+    <div class="container">
+        <!-- HOME PAGE -->
+        <div id="homePage" class="content">
+            <h1>🎉 Willkommen zur Veranstaltungsanmeldung</h1>
+            <p>Wählen Sie eine Veranstaltung aus, um sich anzumelden:</p>
+            <div id="eventsList" class="event-grid"></div>
+            <div style="margin-top: 2rem;">
+                <button onclick="showAdminLogin()">🔐 Admin Login</button>
+            </div>
+        </div>
+
+        <!-- REGISTRATION PAGE -->
+        <div id="registrationPage" class="content hidden">
+            <h1 id="eventTitle">Anmeldung</h1>
+            <button onclick="backToHome()">← Zurück</button>
+            <form id="registrationForm">
+                <h2>Ihre Daten</h2>
+                <div class="form-group">
+                    <label>Vorname *</label>
+                    <input type="text" id="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label>Nachname *</label>
+                    <input type="text" id="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Telefon</label>
+                    <input type="tel" id="phone">
+                </div>
+                <div class="form-group">
+                    <label>Organisation</label>
+                    <input type="text" id="organization">
+                </div>
+                <div class="form-group">
+                    <label>Besondere Wünsche</label>
+                    <input type="text" id="dietary" placeholder="z.B. vegetarisch, glutenfrei">
+                </div>
+
+                <h2>Workshops *</h2>
+                <div id="workshopsList"></div>
+
+                <button type="submit">✅ Anmeldung abschließen</button>
+            </form>
+            <div id="registrationMessage"></div>
+        </div>
+
+        <!-- ADMIN LOGIN -->
+        <div id="adminLogin" class="content hidden">
+            <div class="admin-login">
+                <h2>🔐 Admin Login</h2>
+                <input type="password" id="adminPassword" placeholder="Passwort">
+                <button onclick="adminLoginSubmit()">Login</button>
+                <button onclick="backToHome()" style="background: #95a5a6; margin-left: 1rem;">Abbrechen</button>
+            </div>
+        </div>
+
+        <!-- ADMIN DASHBOARD -->
+        <div id="adminDashboard" class="content hidden">
+            <h2>📊 Admin Dashboard</h2>
+            <button onclick="adminLogout()">🚪 Logout</button>
+            <button onclick="showCreateEvent()" style="background: #27ae60;">➕ Neue Veranstaltung</button>
+            <button onclick="exportDataCSV()" style="background: #e67e22;">📥 CSV Export</button>
+            <button onclick="exportDataJSON()" style="background: #9b59b6;">📥 JSON Export</button>
+            
+            <h3 style="margin-top: 2rem;">Veranstaltungen</h3>
+            <div id="adminEventsList"></div>
+        </div>
+
+        <!-- CREATE EVENT -->
+        <div id="createEventPage" class="content hidden">
+            <h2>Neue Veranstaltung erstellen</h2>
+            <button onclick="backToAdmin()" style="background: #95a5a6;">← Zurück</button>
+            <form id="createEventForm">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="eventName" required>
+                </div>
+                <div class="form-group">
+                    <label>Beschreibung</label>
+                    <textarea id="eventDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Datum *</label>
+                    <input type="datetime-local" id="eventDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Ort</label>
+                    <input type="text" id="eventLocation">
+                </div>
+                <div class="form-group">
+                    <label>Max. Teilnehmer</label>
+                    <input type="number" id="maxParticipants" value="100">
+                </div>
+                <button type="submit">✅ Veranstaltung erstellen</button>
+            </form>
+        </div>
+
+        <!-- EVENT DETAILS FOR ADMIN -->
+        <div id="eventDetailsPage" class="content hidden">
+            <h2 id="eventDetailsTitle">Event Details</h2>
+            <button onclick="backToAdmin()" style="background: #95a5a6;">← Zurück</button>
+            <button onclick="showCreateWorkshop()" style="background: #27ae60;">➕ Workshop hinzufügen</button>
+            
+            <h3 style="margin-top: 2rem;">Workshops</h3>
+            <div id="workshopsTableAdmin"></div>
+            
+            <h3 style="margin-top: 2rem;">Anmeldungen</h3>
+            <table id="registrationsTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Telefon</th>
+                        <th>Organisation</th>
+                        <th>Workshops</th>
+                        <th>Datum</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- CREATE WORKSHOP -->
+        <div id="createWorkshopPage" class="content hidden">
+            <h2>Workshop erstellen</h2>
+            <button onclick="backToEventDetails()" style="background: #95a5a6;">← Zurück</button>
+            <form id="createWorkshopForm">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="workshopName" required>
+                </div>
+                <div class="form-group">
+                    <label>Beschreibung</label>
+                    <textarea id="workshopDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Start Zeit *</label>
+                    <input type="datetime-local" id="workshopStartTime" required>
+                </div>
+                <div class="form-group">
+                    <label>End Zeit *</label>
+                    <input type="datetime-local" id="workshopEndTime" required>
+                </div>
+                <div class="form-group">
+                    <label>Ort</label>
+                    <input type="text" id="workshopLocation">
+                </div>
+                <div class="form-group">
+                    <label>Max. Kapazität *</label>
+                    <input type="number" id="workshopCapacity" required>
+                </div>
+                <button type="submit">✅ Workshop erstellen</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Veranstaltungsanmeldesystem. Alle Rechte vorbehalten.</p>
+    </footer>
+
+    <script>
+        const ADMIN_PASSWORD = 'admin';
+        let currentEventId = null;
+        let currentWorkshopId = null;
+
+        // Initialize data
+        function initializeData() {
+            if (!localStorage.getItem('events')) {
+                const demoEvents = [
+                    {
+                        id: 1,
+                        name: 'BNE-Tag 2025',
+                        description: 'Bundeszentrale für Nachhaltige Entwicklung - Bildung für Nachhaltige Entwicklung',
+                        date: '2025-05-15T09:00',
+                        location: 'Berlin',
+                        maxParticipants: 200,
+                        workshops: [
+                            { id: 1, name: 'Nachhaltige Entwicklung I', description: 'Einführung in BNE', startTime: '2025-05-15T10:00', endTime: '2025-05-15T11:30', location: 'Raum A', maxCapacity: 30, currentCapacity: 0 },
+                            { id: 2, name: 'Nachhaltige Entwicklung II', description: 'Praxisbeispiele', startTime: '2025-05-15T12:00', endTime: '2025-05-15T13:30', location: 'Raum B', maxCapacity: 25, currentCapacity: 0 },
+                            { id: 3, name: 'Nachhaltige Entwicklung III', description: 'Umsetzung in der Praxis', startTime: '2025-05-15T14:00', endTime: '2025-05-15T15:30', location: 'Raum C', maxCapacity: 20, currentCapacity: 0 }
+                        ]
+                    }
+                ];
+                localStorage.setItem('events', JSON.stringify(demoEvents));
+            }
+            if (!localStorage.getItem('registrations')) {
+                localStorage.setItem('registrations', JSON.stringify([]));
+            }
+        }
+
+        // Display functions
+        function displayEventsList() {
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            const listDiv = document.getElementById('eventsList');
+            listDiv.innerHTML = '';
+            events.forEach(event => {
+                const card = document.createElement('div');
+                card.className = 'event-card';
+                card.innerHTML = `
+                    <div class="event-card-header"><h3>${event.name}</h3></div>
+                    <div class="event-card-body">
+                        <p><strong>📅 Datum:</strong> ${new Date(event.date).toLocaleString('de-DE')}</p>
+                        <p><strong>📍 Ort:</strong> ${event.location || 'TBD'}</p>
+                        <p><strong>📝 Beschreibung:</strong> ${event.description.substring(0, 100)}...</p>
+                        <a href="#" onclick="registerForEvent(${event.id}); return false;">Zur Anmeldung →</a>
+                    </div>
+                `;
+                listDiv.appendChild(card);
+            });
+        }
+
+        function registerForEvent(eventId) {
+            currentEventId = eventId;
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            const event = events.find(e => e.id === eventId);
+            if (event) {
+                document.getElementById('eventTitle').textContent = `Anmeldung: ${event.name}`;
+                const workshopsList = document.getElementById('workshopsList');
+                workshopsList.innerHTML = '';
+                event.workshops.forEach(workshop => {
+                    const div = document.createElement('div');
+                    div.className = 'workshop-item';
+                    const percentage = (workshop.currentCapacity / workshop.maxCapacity * 100) || 0;
+                    const isFull = workshop.currentCapacity >= workshop.maxCapacity;
+                    div.innerHTML = `
+                        <div>
+                            <input type="checkbox" id="workshop_${workshop.id}" name="workshops" value="${workshop.id}">
+                            <label for="workshop_${workshop.id}" style="display: inline;"><strong>${workshop.name}</strong></label>
+                        </div>
+                        <p>${workshop.description}</p>
+                        <p>📅 ${new Date(workshop.startTime).toLocaleString('de-DE')} - ${new Date(workshop.endTime).toLocaleTimeString('de-DE')}</p>
+                        <p>📍 ${workshop.location}</p>
+                        <div class="capacity-bar">
+                            <div class="capacity-bar-fill ${isFull ? 'full' : ''}" style="width: ${percentage}%">
+                                ${workshop.currentCapacity}/${workshop.maxCapacity}
+                            </div>
+                        </div>
+                        ${isFull ? '<p style="color: red;"><strong>⚠️ Workshop ist voll</strong></p>' : ''}
+                    `;
+                    workshopsList.appendChild(div);
+                });
+                showPage('registrationPage');
+            }
+        }
+
+        function validateEmail(email) {
+            return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
+        }
+
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const organization = document.getElementById('organization').value;
+            const dietary = document.getElementById('dietary').value;
+            const selectedWorkshops = Array.from(document.querySelectorAll('input[name="workshops"]:checked')).map(cb => parseInt(cb.value));
+
+            if (!firstName || !lastName || !email) {
+                document.getElementById('registrationMessage').innerHTML = '<div class="error-message">Bitte füllen Sie alle erforderlichen Felder aus.</div>';
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                document.getElementById('registrationMessage').innerHTML = '<div class="error-message">Ungültige Email-Adresse.</div>';
+                return;
+            }
+
+            if (selectedWorkshops.length === 0) {
+                document.getElementById('registrationMessage').innerHTML = '<div class="error-message">Bitte wählen Sie mindestens einen Workshop aus.</div>';
+                return;
+            }
+
+            // Check for duplicates
+            const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
+            if (registrations.some(r => r.email === email)) {
+                document.getElementById('registrationMessage').innerHTML = '<div class="error-message">Diese Email-Adresse ist bereits registriert.</div>';
+                return;
+            }
+
+            // Add registration
+            const registration = {
+                id: Date.now(),
+                firstName,
+                lastName,
+                email,
+                phone,
+                organization,
+                dietary,
+                workshops: selectedWorkshops,
+                date: new Date().toISOString(),
+                eventId: currentEventId
+            };
+            registrations.push(registration);
+            localStorage.setItem('registrations', JSON.stringify(registrations));
+
+            // Update workshop capacities
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            const event = events.find(e => e.id === currentEventId);
+            if (event) {
+                selectedWorkshops.forEach(wId => {
+                    const workshop = event.workshops.find(w => w.id === wId);
+                    if (workshop) {
+                        workshop.currentCapacity = (workshop.currentCapacity || 0) + 1;
+                    }
+                });
+                localStorage.setItem('events', JSON.stringify(events));
+            }
+
+            document.getElementById('registrationMessage').innerHTML = '<div class="success-message"><h3>🎉 Anmeldung erfolgreich!</h3><p>Vielen Dank für Ihre Anmeldung. Sie erhalten eine Bestätigungsemail.</p></div>';
+            document.getElementById('registrationForm').reset();
+            setTimeout(() => backToHome(), 2000);
+        });
+
+        // Admin functions
+        function showAdminLogin() {
+            showPage('adminLogin');
+        }
+
+        function adminLoginSubmit() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === ADMIN_PASSWORD) {
+                showAdminDashboard();
+            } else {
+                alert('Falsches Passwort');
+            }
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function showAdminDashboard() {
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            const adminEventsList = document.getElementById('adminEventsList');
+            adminEventsList.innerHTML = '';
+            events.forEach(event => {
+                const div = document.createElement('div');
+                div.style.border = '1px solid #ddd';
+                div.style.padding = '1rem';
+                div.style.marginBottom = '1rem';
+                div.style.borderRadius = '4px';
+                div.innerHTML = `
+                    <h3>${event.name}</h3>
+                    <p><strong>📅 Datum:</strong> ${new Date(event.date).toLocaleString('de-DE')}</p>
+                    <p><strong>📍 Ort:</strong> ${event.location}</p>
+                    <p><strong>Workshops:</strong> ${event.workshops.length}</p>
+                    <button onclick="showEventDetails(${event.id})">Details anzeigen</button>
+                `;
+                adminEventsList.appendChild(div);
+            });
+            showPage('adminDashboard');
+        }
+
+        function showEventDetails(eventId) {
+            currentEventId = eventId;
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            const event = events.find(e => e.id === eventId);
+            if (event) {
+                document.getElementById('eventDetailsTitle').textContent = `Event Details: ${event.name}`;
+                
+                // Show workshops
+                const workshopsTable = document.getElementById('workshopsTableAdmin');
+                workshopsTable.innerHTML = '<table><thead><tr><th>Name</th><th>Kapazität</th><th>Registriert</th><th>Zeit</th><th>Ort</th></tr></thead><tbody>';
+                event.workshops.forEach(workshop => {
+                    workshopsTable.innerHTML += `
+                        <tr>
+                            <td>${workshop.name}</td>
+                            <td>${workshop.maxCapacity}</td>
+                            <td>${workshop.currentCapacity}</td>
+                            <td>${new Date(workshop.startTime).toLocaleTimeString('de-DE')}</td>
+                            <td>${workshop.location}</td>
+                        </tr>
+                    `;
+                });
+                workshopsTable.innerHTML += '</tbody></table>';
+
+                // Show registrations
+                const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
+                const eventRegistrations = registrations.filter(r => r.eventId === eventId);
+                const tbody = document.querySelector('#registrationsTable tbody');
+                tbody.innerHTML = '';
+                eventRegistrations.forEach(reg => {
+                    const workshopNames = reg.workshops.map(wId => event.workshops.find(w => w.id === wId)?.name).join(', ');
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${reg.firstName} ${reg.lastName}</td>
+                            <td>${reg.email}</td>
+                            <td>${reg.phone || '-'}</td>
+                            <td>${reg.organization || '-'}</td>
+                            <td>${workshopNames}</td>
+                            <td>${new Date(reg.date).toLocaleString('de-DE')}</td>
+                        </tr>
+                    `;
+                });
+
+                showPage('eventDetailsPage');
+            }
+        }
+
+        function showCreateEvent() {
+            showPage('createEventPage');
+        }
+
+        document.getElementById('createEventForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('eventName').value;
+            const description = document.getElementById('eventDescription').value;
+            const date = document.getElementById('eventDate').value;
+            const location = document.getElementById('eventLocation').value;
+            const maxParticipants = parseInt(document.getElementById('maxParticipants').value);
+
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            const newEvent = {
+                id: Date.now(),
+                name,
+                description,
+                date,
+                location,
+                maxParticipants,
+                workshops: []
+            };
+            events.push(newEvent);
+            localStorage.setItem('events', JSON.stringify(events));
+
+            alert('Veranstaltung erstellt!');
+            document.getElementById('createEventForm').reset();
+            showAdminDashboard();
+        });
+
+        function showCreateWorkshop() {
+            showPage('createWorkshopPage');
+        }
+
+        document.getElementById('createWorkshopForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('workshopName').value;
+            const description = document.getElementById('workshopDescription').value;
+            const startTime = document.getElementById('workshopStartTime').value;
+            const endTime = document.getElementById('workshopEndTime').value;
+            const location = document.getElementById('workshopLocation').value;
+            const maxCapacity = parseInt(document.getElementById('workshopCapacity').value);
+
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            const event = events.find(e => e.id === currentEventId);
+            if (event) {
+                const newWorkshop = {
+                    id: Date.now(),
+                    name,
+                    description,
+                    startTime,
+                    endTime,
+                    location,
+                    maxCapacity,
+                    currentCapacity: 0
+                };
+                event.workshops.push(newWorkshop);
+                localStorage.setItem('events', JSON.stringify(events));
+                alert('Workshop erstellt!');
+                document.getElementById('createWorkshopForm').reset();
+                showEventDetails(currentEventId);
+            }
+        });
+
+        function backToEventDetails() {
+            showEventDetails(currentEventId);
+        }
+
+        function exportDataCSV() {
+            const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
+            const events = JSON.parse(localStorage.getItem('events')) || [];
+            let csv = 'Vorname,Nachname,Email,Telefon,Organisation,Besondere Wünsche,Workshops,Datum\n';
+            registrations.forEach(reg => {
+                const event = events.find(e => e.id === reg.eventId);
+                const workshopNames = reg.workshops.map(wId => event.workshops.find(w => w.id === wId)?.name).join(';');
+                csv += `${reg.firstName},${reg.lastName},${reg.email},${reg.phone || ''},${reg.organization || ''},${reg.dietary || ''},${workshopNames},${new Date(reg.date).toLocaleString('de-DE')}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'registrations.csv';
+            a.click();
+        }
+
+        function exportDataJSON() {
+            const data = {
+                events: JSON.parse(localStorage.getItem('events')) || [],
+                registrations: JSON.parse(localStorage.getItem('registrations')) || []
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.json';
+            a.click();
+        }
+
+        function adminLogout() {
+            showPage('homePage');
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('[id$="Page"], #adminLogin, #adminDashboard').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+        function backToHome() {
+            showPage('homePage');
+            displayEventsList();
+        }
+
+        function backToAdmin() {
+            showAdminDashboard();
+        }
+
+        // Initialize on load
+        window.addEventListener('load', function() {
+            initializeData();
+            displayEventsList();
+        });
+    </script>
+</body>
+</html>
